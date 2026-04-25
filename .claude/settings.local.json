@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/bin/pip install *)",
+      "Bash(venv/bin/alembic init *)",
+      "Bash(venv/bin/python -c \"from app.main import app; print\\('Backend importa correctamente'\\)\")",
+      "Bash(venv/bin/pip freeze *)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
