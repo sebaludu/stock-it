@@ -114,6 +114,3 @@ export default function Assets() {
     </div>
   )
 }
-
-// Suppress unused import warning
-type _AssetStatus = AssetStatus

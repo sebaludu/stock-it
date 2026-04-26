@@ -32,9 +32,14 @@ export default function Users() {
     },
   })
 
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) =>
-      is_active ? deactivateUser(id) : updateUser(id, { is_active: true }),
+  const toggleMutation = useMutation<void, Error, { id: number; is_active: boolean }>({
+    mutationFn: async ({ id, is_active }) => {
+      if (is_active) {
+        await deactivateUser(id)
+      } else {
+        await updateUser(id, { is_active: true })
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   })
 
