@@ -5,7 +5,6 @@ import { getAssets, getAssetTypes } from '../api/assets'
 import StockBadge from '../components/StockBadge'
 import { useAuthStore } from '../store/authStore'
 import { Plus, Eye } from 'lucide-react'
-import type { AssetStatus } from '../types'
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'Todos los estados' },
