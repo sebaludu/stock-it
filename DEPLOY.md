@@ -6,7 +6,7 @@ Stack de producción 100% gratuito, sin tarjeta de crédito:
 |----------|-----|----------------|
 | [Neon](https://neon.tech) | Base de datos PostgreSQL | 500 MB, sin vencimiento |
 | [Render](https://render.com) | Backend FastAPI | 1 web service (duerme tras 15 min sin tráfico) |
-| [Vercel](https://vercel.com) | Frontend React | Ancho de banda ilimitado |
+| [Netlify](https://netlify.com) | Frontend React | Ancho de banda ilimitado, repos privados incluidos |
 
 ---
 
@@ -38,7 +38,7 @@ git push -u origin main
 1. Ir a **https://neon.tech** → Sign up (con Google o email, sin tarjeta)
 2. Hacer clic en **Create a project**
    - Project name: `stock-it`
-   - Region: elegir la más cercana (ej. US East para Argentina suele tener buena latencia)
+   - Region: elegir la más cercana (US East suele tener buena latencia desde Argentina)
 3. Una vez creado, ir a **Dashboard → Connection Details**
 4. Copiar la **Connection string** que tiene este formato:
    ```
@@ -52,7 +52,7 @@ git push -u origin main
 
 1. Ir a **https://render.com** → Sign up (con GitHub, sin tarjeta)
 2. En el dashboard hacer clic en **New → Web Service**
-3. Conectar el repositorio de GitHub recién creado
+3. Conectar el repositorio de GitHub
 4. Completar la configuración:
 
    | Campo | Valor |
@@ -66,82 +66,76 @@ git push -u origin main
    | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
    | Instance Type | **Free** |
 
-5. Bajar hasta la sección **Environment Variables** y agregar las siguientes:
+5. En la sección **Environment Variables** agregar:
 
    | Key | Value |
    |-----|-------|
    | `DATABASE_URL` | La connection string de Neon del Paso 1 |
    | `SECRET_KEY` | Generar con: `python -c "import secrets; print(secrets.token_hex(32))"` |
-   | `ALLOWED_ORIGINS` | `https://stock-it.vercel.app` (actualizar con la URL real después del Paso 3) |
+   | `PYTHON_VERSION` | `3.11.9` |
+   | `ALLOWED_ORIGINS` | `https://stock-it.netlify.app` (actualizar con la URL real después del Paso 3) |
 
-6. Hacer clic en **Create Web Service**
-7. Esperar el primer deploy (tarda ~3 minutos)
-8. Una vez completado, Render muestra la URL del servicio, algo como:
+6. Hacer clic en **Create Web Service** y esperar el deploy (~3 minutos)
+7. Render asigna una URL como:
    ```
    https://stock-it-api.onrender.com
    ```
    > Guardar esta URL, se usa en el Paso 3.
 
-9. Verificar que el backend esté funcionando abriendo en el navegador:
+8. Verificar en el navegador:
    ```
    https://stock-it-api.onrender.com/health
    ```
    Debe responder: `{"status": "ok"}`
 
-   La documentación de la API queda disponible en:
-   ```
-   https://stock-it-api.onrender.com/docs
-   ```
-
 ---
 
-## Paso 3 — Frontend en Vercel
+## Paso 3 — Frontend en Netlify
 
-1. Ir a **https://vercel.com** → Sign up (con GitHub, sin tarjeta)
-2. En el dashboard hacer clic en **Add New → Project**
-3. Importar el repositorio de GitHub
-4. Vercel detecta automáticamente que es un proyecto Vite. Verificar la configuración:
+1. Ir a **https://netlify.com** → Sign up (con GitHub, sin tarjeta)
+2. En el dashboard hacer clic en **Add new site → Import an existing project**
+3. Elegir **GitHub** y seleccionar el repositorio
+4. Netlify detecta el `netlify.toml` automáticamente. Verificar la configuración:
 
-   | Campo | Valor |
-   |-------|-------|
-   | Framework Preset | Vite |
-   | Root Directory | `frontend` |
-   | Build Command | `npm run build` (detectado automáticamente) |
-   | Output Directory | `dist` (detectado automáticamente) |
+   | Campo | Valor (detectado automáticamente) |
+   |-------|----------------------------------|
+   | Base directory | `frontend` |
+   | Build command | `npm install && npm run build` |
+   | Publish directory | `dist` |
 
-5. Expandir la sección **Environment Variables** y agregar:
+5. Expandir **Environment variables** y agregar:
 
    | Key | Value |
    |-----|-------|
-   | `VITE_API_URL` | La URL del backend de Render del Paso 2, ej. `https://stock-it-api.onrender.com` |
+   | `VITE_API_URL` | La URL del backend de Render, ej. `https://stock-it-api.onrender.com` |
 
-6. Hacer clic en **Deploy**
-7. Una vez completado, Vercel muestra la URL del frontend, algo como:
+6. Hacer clic en **Deploy site**
+7. Netlify asigna una URL aleatoria como:
    ```
-   https://stock-it.vercel.app
+   https://nombre-aleatorio.netlify.app
    ```
+   Se puede renombrar desde **Site configuration → Change site name**.
 
 ---
 
 ## Paso 4 — Actualizar CORS en Render
 
-Ahora que se conoce la URL real del frontend, hay que actualizarla en Render:
+Con la URL real de Netlify, actualizarla en Render:
 
-1. Ir a **render.com** → entrar al servicio `stock-it-api`
-2. Ir a **Environment → Edit**
-3. Actualizar la variable:
+1. Ir a **render.com** → servicio `stock-it-api` → **Environment → Edit**
+2. Actualizar:
 
    | Key | Value |
    |-----|-------|
-   | `ALLOWED_ORIGINS` | `https://stock-it.vercel.app` (la URL real de Vercel) |
+   | `ALLOWED_ORIGINS` | `https://tu-sitio.netlify.app` (la URL real de Netlify) |
 
-4. Guardar → Render hace un redeploy automático (~1 minuto)
+3. Guardar → Render redesplega automáticamente (~1 minuto)
 
 ---
 
 ## Paso 5 — Verificación final
 
-1. Abrir `https://stock-it.vercel.app` en el navegador
+1. Abrir la URL de Netlify en el navegador
 2. Iniciar sesión con las credenciales iniciales:
    - Usuario: `admin` / Contraseña: `Admin123!`
    - Usuario: `soporte` / Contraseña: `Soporte123!`
@@ -153,34 +147,36 @@ Ahora que se conoce la URL real del frontend, hay que actualizarla en Render:
 
 ## Actualizaciones futuras
 
-Cada vez que se haga `git push origin main`, Render y Vercel detectan el cambio y redesplegan automáticamente (CI/CD sin configuración adicional).
+Cada `git push origin main` dispara un redeploy automático en Render y Netlify.
 
 ```bash
-# Flujo de trabajo habitual
 git add .
 git commit -m "descripción del cambio"
 git push origin main
-# Render y Vercel redesplegan solos en ~2 minutos
+# Render y Netlify redesplegan solos en ~2 minutos
 ```
 
 ---
 
 ## Solución de problemas comunes
 
-### El backend no responde (primer acceso lento)
-Render free tier pone el servicio a dormir tras 15 minutos sin tráfico. El primer request después de ese período tarda ~30 segundos en despertar. Es normal.
+### El backend no responde en el primer acceso
+Render free pone el servicio a dormir tras 15 minutos sin tráfico. El primer request tarda ~30 segundos en despertar. Es normal.
+
+### Error de build en Render (maturin / cargo)
+Verificar que la variable de entorno `PYTHON_VERSION=3.11.9` esté configurada en Render.
 
 ### Error 401 al intentar login
-Verificar que `VITE_API_URL` en Vercel apunte exactamente a la URL de Render (sin barra `/` al final).
+Verificar que `VITE_API_URL` en Netlify apunte exactamente a la URL de Render (sin barra `/` al final).
 
 ### Error CORS en el navegador
-Verificar que `ALLOWED_ORIGINS` en Render contenga exactamente la URL de Vercel, incluyendo `https://` y sin barra al final.
+Verificar que `ALLOWED_ORIGINS` en Render contenga exactamente la URL de Netlify, con `https://` y sin barra al final.
 
-### El frontend muestra pantalla en blanco
-Verificar que `vercel.json` esté presente en la carpeta `frontend/` (ya está incluido en el proyecto).
+### El frontend muestra pantalla en blanco al navegar
+El `netlify.toml` incluye la regla de redirect para SPA. Si se eliminó ese archivo, recrearlo con el contenido original.
 
 ### La base de datos no persiste entre deploys
-Con Neon (PostgreSQL), los datos persisten indefinidamente. Si se usa SQLite localmente para desarrollo, esos datos no se sincronizan con producción, que usa Neon.
+Con Neon (PostgreSQL), los datos persisten indefinidamente. El SQLite local es solo para desarrollo.
 
 ---
 
@@ -194,9 +190,10 @@ Con Neon (PostgreSQL), los datos persisten indefinidamente. Si se usa SQLite loc
 | `SECRET_KEY` | Clave secreta para JWT (32 bytes hex) | `a1b2c3d4...` |
 | `ALGORITHM` | Algoritmo JWT (no cambiar) | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiración de sesión en minutos | `480` |
-| `ALLOWED_ORIGINS` | URL del frontend en Vercel | `https://stock-it.vercel.app` |
+| `PYTHON_VERSION` | Versión de Python para Render | `3.11.9` |
+| `ALLOWED_ORIGINS` | URL del frontend en Netlify | `https://stock-it.netlify.app` |
 
-### Frontend (configurar en Vercel)
+### Frontend (configurar en Netlify)
 
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
