@@ -38,4 +38,27 @@ app.include_router(reports.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    from app.database import SessionLocal
+    from app.models.user import User
+    db = SessionLocal()
+    try:
+        user_count = db.query(User).count()
+        return {"status": "ok", "users_in_db": user_count}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+    finally:
+        db.close()
+
+@app.post("/admin/reseed")
+def reseed():
+    from seed import seed
+    from app.database import SessionLocal
+    from app.models.user import User
+    db = SessionLocal()
+    try:
+        db.query(User).delete()
+        db.commit()
+    finally:
+        db.close()
+    seed()
+    return {"message": "Seed ejecutado"}
