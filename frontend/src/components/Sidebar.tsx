@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Monitor, ArrowLeftRight, Users, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Monitor, ArrowLeftRight, Users, BarChart3, Tag } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const links = [
@@ -7,6 +7,7 @@ const links = [
   { to: '/assets', icon: Monitor, label: 'Activos' },
   { to: '/movements', icon: ArrowLeftRight, label: 'Movimientos' },
   { to: '/reports', icon: BarChart3, label: 'Reportes' },
+  { to: '/asset-types', icon: Tag, label: 'Tipos de activo', adminOnly: true },
   { to: '/users', icon: Users, label: 'Usuarios', adminOnly: true },
 ]
 

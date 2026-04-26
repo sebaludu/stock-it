@@ -20,7 +20,6 @@ class Asset(Base):
     description = Column(String(255), nullable=False)
     brand = Column(String(100), nullable=True)
     model = Column(String(100), nullable=True)
-    serial_number = Column(String(100), nullable=True)
     total_quantity = Column(Integer, default=0, nullable=False)
     current_stock = Column(Integer, default=0, nullable=False)
     safety_stock = Column(Integer, default=0, nullable=False)

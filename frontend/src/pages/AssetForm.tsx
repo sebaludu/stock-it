@@ -22,7 +22,6 @@ export default function AssetForm() {
     asset_type_id: '',
     brand: '',
     model: '',
-    serial_number: '',
     safety_stock: '0',
     initial_stock: '0',
     status: 'DISPONIBLE',
@@ -38,7 +37,6 @@ export default function AssetForm() {
         asset_type_id: String(existing.asset_type_id),
         brand: existing.brand ?? '',
         model: existing.model ?? '',
-        serial_number: existing.serial_number ?? '',
         safety_stock: String(existing.safety_stock),
         initial_stock: '0',
         status: existing.status,
@@ -55,7 +53,6 @@ export default function AssetForm() {
         asset_type_id: Number(form.asset_type_id),
         brand: form.brand || undefined,
         model: form.model || undefined,
-        serial_number: form.serial_number || undefined,
         safety_stock: Number(form.safety_stock),
         status: form.status,
         purchase_date: form.purchase_date || undefined,
@@ -87,10 +84,7 @@ export default function AssetForm() {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-6">{isEdit ? 'Editar Activo' : 'Nuevo Activo'}</h2>
 
-        <form
-          onSubmit={(e) => { e.preventDefault(); setError(''); mutation.mutate() }}
-          className="space-y-4"
-        >
+        <form onSubmit={(e) => { e.preventDefault(); setError(''); mutation.mutate() }} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
@@ -116,10 +110,6 @@ export default function AssetForm() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
               <input value={form.model} onChange={set('model')} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">N° de serie</label>
-              <input value={form.serial_number} onChange={set('serial_number')} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Stock de seguridad</label>

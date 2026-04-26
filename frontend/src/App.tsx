@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Assets from './pages/Assets'
 import AssetDetail from './pages/AssetDetail'
 import AssetForm from './pages/AssetForm'
+import AssetTypes from './pages/AssetTypes'
 import Movements from './pages/Movements'
 import Users from './pages/Users'
 import Reports from './pages/Reports'
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="assets/new" element={<ProtectedRoute adminOnly><AssetForm /></ProtectedRoute>} />
           <Route path="assets/:id" element={<AssetDetail />} />
           <Route path="assets/:id/edit" element={<ProtectedRoute adminOnly><AssetForm /></ProtectedRoute>} />
+          <Route path="asset-types" element={<ProtectedRoute adminOnly><AssetTypes /></ProtectedRoute>} />
           <Route path="movements" element={<Movements />} />
           <Route path="users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
           <Route path="reports" element={<Reports />} />

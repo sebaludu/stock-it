@@ -12,7 +12,6 @@ export interface AssetCreateData {
   asset_type_id: number
   brand?: string
   model?: string
-  serial_number?: string
   safety_stock?: number
   status?: string
   purchase_date?: string
@@ -40,8 +39,8 @@ export const updateAsset = async (id: number, payload: Partial<AssetCreateData>)
   return data
 }
 
-export const deleteAsset = async (id: number): Promise<void> => {
-  await client.delete(`/assets/${id}`)
+export const deleteAsset = async (id: number, reason: string): Promise<void> => {
+  await client.delete(`/assets/${id}`, { params: { reason } })
 }
 
 export const getAssetTypes = async (): Promise<AssetType[]> => {
@@ -52,4 +51,8 @@ export const getAssetTypes = async (): Promise<AssetType[]> => {
 export const createAssetType = async (payload: { name: string; description?: string; icon?: string }): Promise<AssetType> => {
   const { data } = await client.post<AssetType>('/asset-types', payload)
   return data
+}
+
+export const deleteAssetType = async (id: number): Promise<void> => {
+  await client.delete(`/asset-types/${id}`)
 }

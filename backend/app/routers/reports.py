@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.asset import Asset
 from app.models.movement import StockMovement
+from app.models.asset_deletion_log import AssetDeletionLog
 from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -56,6 +57,26 @@ def alerts(db: Session = Depends(get_db), _=Depends(get_current_user)):
          "asset_type": a.asset_type.name, "current_stock": a.current_stock,
          "safety_stock": a.safety_stock, "stock_status": _stock_status(a.current_stock, a.safety_stock)}
         for a in assets
+    ]
+
+@router.get("/deleted-assets")
+def deleted_assets_log(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    logs = db.query(AssetDeletionLog).order_by(AssetDeletionLog.deleted_at.desc()).all()
+    return [
+        {
+            "id": l.id,
+            "asset_code": l.asset_code,
+            "asset_description": l.asset_description,
+            "asset_type_name": l.asset_type_name,
+            "brand": l.brand,
+            "model": l.model,
+            "total_quantity": l.total_quantity,
+            "final_stock": l.final_stock,
+            "reason": l.reason,
+            "deleted_by": l.deleted_by.full_name,
+            "deleted_at": l.deleted_at,
+        }
+        for l in logs
     ]
 
 @router.get("/movements/export")

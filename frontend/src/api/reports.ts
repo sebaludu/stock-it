@@ -1,5 +1,5 @@
 import { client } from './client'
-import type { StockReportItem } from '../types'
+import type { StockReportItem, AssetDeletionLog } from '../types'
 
 export const getStockReport = async (): Promise<StockReportItem[]> => {
   const { data } = await client.get<StockReportItem[]>('/reports/stock')
@@ -8,6 +8,11 @@ export const getStockReport = async (): Promise<StockReportItem[]> => {
 
 export const getAlerts = async (): Promise<StockReportItem[]> => {
   const { data } = await client.get<StockReportItem[]>('/reports/alerts')
+  return data
+}
+
+export const getDeletedAssetsLog = async (): Promise<AssetDeletionLog[]> => {
+  const { data } = await client.get<AssetDeletionLog[]>('/reports/deleted-assets')
   return data
 }
 

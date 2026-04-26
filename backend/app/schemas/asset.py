@@ -8,7 +8,6 @@ class AssetBase(BaseModel):
     asset_type_id: int
     brand: str | None = None
     model: str | None = None
-    serial_number: str | None = None
     safety_stock: int = 0
     status: AssetStatus = AssetStatus.DISPONIBLE
     purchase_date: date | None = None
@@ -22,7 +21,6 @@ class AssetUpdate(BaseModel):
     asset_type_id: int | None = None
     brand: str | None = None
     model: str | None = None
-    serial_number: str | None = None
     safety_stock: int | None = None
     status: AssetStatus | None = None
     purchase_date: date | None = None
@@ -36,7 +34,6 @@ class AssetResponse(BaseModel):
     asset_type: AssetTypeResponse
     brand: str | None
     model: str | None
-    serial_number: str | None
     total_quantity: int
     current_stock: int
     safety_stock: int

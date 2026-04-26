@@ -21,6 +21,20 @@ export interface AssetType {
   created_at: string
 }
 
+export interface AssetDeletionLog {
+  id: number
+  asset_code: string
+  asset_description: string
+  asset_type_name: string
+  brand: string | null
+  model: string | null
+  total_quantity: number
+  final_stock: number
+  reason: string | null
+  deleted_by: string
+  deleted_at: string
+}
+
 export interface Asset {
   id: number
   code: string
@@ -29,7 +43,6 @@ export interface Asset {
   asset_type: AssetType
   brand: string | null
   model: string | null
-  serial_number: string | null
   total_quantity: number
   current_stock: number
   safety_stock: number

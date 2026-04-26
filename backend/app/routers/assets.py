@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.asset import Asset, AssetStatus
 from app.models.asset_type import AssetType
 from app.models.movement import StockMovement, MovementType
+from app.models.asset_deletion_log import AssetDeletionLog
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 from app.core.dependencies import get_current_user, require_admin
 
@@ -50,7 +51,6 @@ def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=
         description=data.description,
         brand=data.brand,
         model=data.model,
-        serial_number=data.serial_number,
         total_quantity=data.initial_stock,
         current_stock=data.initial_stock,
         safety_stock=data.safety_stock,
@@ -93,10 +93,28 @@ def update_asset(asset_id: int, data: AssetUpdate, db: Session = Depends(get_db)
     return asset
 
 @router.delete("/{asset_id}")
-def delete_asset(asset_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+def delete_asset(
+    asset_id: int,
+    reason: str = "",
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
     asset = db.query(Asset).filter(Asset.id == asset_id, Asset.is_active == True).first()
     if not asset:
         raise HTTPException(404, "Activo no encontrado")
+
+    log = AssetDeletionLog(
+        asset_code=asset.code,
+        asset_description=asset.description,
+        asset_type_name=asset.asset_type.name,
+        brand=asset.brand,
+        model=asset.model,
+        total_quantity=asset.total_quantity,
+        final_stock=asset.current_stock,
+        reason=reason or None,
+        deleted_by_user_id=current_user.id,
+    )
+    db.add(log)
     asset.is_active = False
     db.commit()
     return {"message": "Activo eliminado"}
