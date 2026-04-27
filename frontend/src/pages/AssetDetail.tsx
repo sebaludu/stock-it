@@ -144,7 +144,7 @@ export default function AssetDetail() {
                 <td className="px-4 py-3 font-medium">{m.quantity}</td>
                 <td className="px-4 py-3">{m.reason}</td>
                 <td className="px-4 py-3">{m.operator.full_name}</td>
-                <td className="px-4 py-3">{m.target_user?.full_name ?? '—'}</td>
+                <td className="px-4 py-3">{m.target_user_name ?? m.target_user?.full_name ?? '—'}</td>
               </tr>
             ))}
             {movements.length === 0 && (

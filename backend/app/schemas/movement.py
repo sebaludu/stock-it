@@ -10,8 +10,7 @@ class MovementCreate(BaseModel):
     quantity: int
     reason: str
     notes: str | None = None
-    target_user_id: int | None = None
-    deposit_id: int | None = None
+    target_user_name: str | None = None
 
 class MovementResponse(BaseModel):
     id: int

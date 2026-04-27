@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMovements, createMovement } from '../api/movements'
 import { getAssets } from '../api/assets'
-import { getUsers } from '../api/users'
-import { getDeposits } from '../api/deposits'
 import { useAuthStore } from '../store/authStore'
 import type { MovementType } from '../types'
 import { Plus, X } from 'lucide-react'
@@ -33,8 +31,7 @@ export default function Movements() {
     quantity: '1',
     reason: '',
     notes: '',
-    target_user_id: '',
-    deposit_id: '',
+    target_user_name: '',
   })
 
   const { data: movements = [] } = useQuery({
@@ -47,8 +44,6 @@ export default function Movements() {
   })
 
   const { data: assets = [] } = useQuery({ queryKey: ['assets'], queryFn: () => getAssets() })
-  const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: getUsers, enabled: showForm })
-  const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: getDeposits, enabled: showForm })
 
   const mutation = useMutation({
     mutationFn: () => createMovement({
@@ -57,16 +52,16 @@ export default function Movements() {
       quantity: Number(form.quantity),
       reason: form.reason,
       notes: form.notes || undefined,
-      target_user_id: form.target_user_id ? Number(form.target_user_id) : undefined,
-      deposit_id: form.deposit_id ? Number(form.deposit_id) : undefined,
+      target_user_name: form.target_user_name || undefined,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['movements'] })
       qc.invalidateQueries({ queryKey: ['assets'] })
       qc.invalidateQueries({ queryKey: ['stock-report'] })
+      qc.invalidateQueries({ queryKey: ['alerts-by-deposit'] })
       qc.invalidateQueries({ queryKey: ['deposit-stock'] })
       setShowForm(false)
-      setForm({ asset_id: '', movement_type: 'EGRESO', quantity: '1', reason: '', notes: '', target_user_id: '', deposit_id: '' })
+      setForm({ asset_id: '', movement_type: 'EGRESO', quantity: '1', reason: '', notes: '', target_user_name: '' })
     },
     onError: (e: unknown) => {
       const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
@@ -79,6 +74,8 @@ export default function Movements() {
   const movementTypes = user?.role === 'ADMIN'
     ? ['INGRESO', 'EGRESO', 'DEVOLUCION']
     : ['EGRESO', 'DEVOLUCION']
+
+  const selectedAsset = assets.find((a) => String(a.id) === form.asset_id)
 
   return (
     <div className="space-y-4">
@@ -106,7 +103,7 @@ export default function Movements() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              {['Fecha', 'Activo', 'Tipo', 'Cantidad', 'Motivo', 'Depósito', 'Operador', 'Destinatario'].map((h) => (
+              {['Fecha', 'Activo', 'Depósito', 'Tipo', 'Cantidad', 'Motivo', 'Operador', 'Destinatario'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
               ))}
             </tr>
@@ -116,6 +113,7 @@ export default function Movements() {
               <tr key={m.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{new Date(m.timestamp).toLocaleString('es-AR')}</td>
                 <td className="px-4 py-3 font-mono text-indigo-600">{m.asset.code}</td>
+                <td className="px-4 py-3 text-gray-500">{m.deposit_name ?? '—'}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     m.movement_type === 'INGRESO' ? 'bg-emerald-100 text-emerald-800' :
@@ -125,9 +123,8 @@ export default function Movements() {
                 </td>
                 <td className="px-4 py-3">{m.quantity}</td>
                 <td className="px-4 py-3 max-w-xs truncate">{m.reason}</td>
-                <td className="px-4 py-3 text-gray-500">{m.deposit_name ?? '—'}</td>
                 <td className="px-4 py-3">{m.operator.full_name}</td>
-                <td className="px-4 py-3">{m.target_user?.full_name ?? '—'}</td>
+                <td className="px-4 py-3">{m.target_user_name ?? '—'}</td>
               </tr>
             ))}
             {movements.length === 0 && (
@@ -151,8 +148,15 @@ export default function Movements() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Activo *</label>
               <select value={form.asset_id} onChange={(e) => setForm((f) => ({ ...f, asset_id: e.target.value }))} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="">Seleccionar...</option>
-                {assets.map((a) => <option key={a.id} value={a.id}>{a.code} — {a.description} (stock: {a.current_stock})</option>)}
+                {assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.code} — {a.description} (stock: {a.current_stock}{a.deposit ? ` · ${a.deposit.name}` : ''})
+                  </option>
+                ))}
               </select>
+              {selectedAsset?.deposit && (
+                <p className="text-xs text-gray-500 mt-1">Depósito: {selectedAsset.deposit.name}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
@@ -165,21 +169,17 @@ export default function Movements() {
             {needsTarget && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {form.movement_type === 'EGRESO' ? 'Usuario destinatario *' : 'Usuario que devuelve *'}
+                  {form.movement_type === 'EGRESO' ? 'Destinatario *' : 'Persona que devuelve *'}
                 </label>
-                <select value={form.target_user_id} onChange={(e) => setForm((f) => ({ ...f, target_user_id: e.target.value }))} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="">Seleccionar...</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                </select>
+                <input
+                  value={form.target_user_name}
+                  onChange={(e) => setForm((f) => ({ ...f, target_user_name: e.target.value }))}
+                  placeholder="Nombre completo"
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Depósito</label>
-              <select value={form.deposit_id} onChange={(e) => setForm((f) => ({ ...f, deposit_id: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="">Sin depósito específico</option>
-                {deposits.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
               <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />

@@ -16,6 +16,7 @@ def _run_migrations():
     with engine.connect() as conn:
         _add_column(conn, "ALTER TABLE assets ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
         _add_column(conn, "ALTER TABLE stock_movements ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
+        _add_column(conn, "ALTER TABLE stock_movements ADD COLUMN target_user_name VARCHAR(255)")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

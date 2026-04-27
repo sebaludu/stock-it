@@ -41,6 +41,17 @@ def seed():
             types[name] = t
         db.flush()
 
+        deposits = [
+            Deposit(name="Depósito Central", description="Depósito principal", location="Planta Baja - Sector A"),
+            Deposit(name="Depósito Sucursal Norte", description="Sucursal zona norte", location="Edificio Norte - Piso 1"),
+            Deposit(name="Depósito Reparación", description="Equipos en reparación o servicio técnico", location="Sala de Servidores"),
+        ]
+        for d in deposits:
+            db.add(d)
+        db.flush()
+
+        dep_central = db.query(Deposit).filter(Deposit.name == "Depósito Central").first()
+
         assets_data = [
             ("NO-001", "Notebook", "Notebook Dell Latitude 5420", "Dell", "Latitude 5420", 10, 3, 5, AssetStatus.DISPONIBLE),
             ("MO-001", "Monitor", "Monitor LG 24\"", "LG", "24MK430H", 15, 8, 3, AssetStatus.DISPONIBLE),
@@ -52,7 +63,8 @@ def seed():
         for code, type_name, desc, brand, model, total, current, safety, status in assets_data:
             a = Asset(code=code, asset_type_id=types[type_name].id, description=desc,
                       brand=brand, model=model, total_quantity=total,
-                      current_stock=current, safety_stock=safety, status=status)
+                      current_stock=current, safety_stock=safety, status=status,
+                      deposit_id=dep_central.id)
             db.add(a)
         db.flush()
 
@@ -60,33 +72,10 @@ def seed():
         for a in all_assets:
             mv = StockMovement(asset_id=a.id, movement_type=MovementType.INGRESO,
                                quantity=a.total_quantity, reason="Stock inicial",
-                               operator_user_id=admin.id)
+                               operator_user_id=admin.id, deposit_id=dep_central.id)
             db.add(mv)
-
-        deposits = [
-            Deposit(name="Depósito Central", description="Depósito principal", location="Planta Baja - Sector A"),
-            Deposit(name="Depósito Sucursal Norte", description="Sucursal zona norte", location="Edificio Norte - Piso 1"),
-            Deposit(name="Depósito Reparación", description="Equipos en reparación o servicio técnico", location="Sala de Servidores"),
-        ]
-        for d in deposits:
-            db.add(d)
-        db.flush()
-
-        dep_central = db.query(Deposit).filter(Deposit.name == "Depósito Central").first()
-        dep_norte = db.query(Deposit).filter(Deposit.name == "Depósito Sucursal Norte").first()
-
-        # soporte user only sees Depósito Central
-        db.add(UserDeposit(user_id=soporte.id, deposit_id=dep_central.id))
-        db.flush()
-
-        # Distribute asset stocks across deposits
-        for a in all_assets:
             if a.current_stock > 0:
-                split = a.current_stock // 2
-                rest = a.current_stock - split
-                db.add(AssetDepositStock(asset_id=a.id, deposit_id=dep_central.id, quantity=rest))
-                if split > 0:
-                    db.add(AssetDepositStock(asset_id=a.id, deposit_id=dep_norte.id, quantity=split))
+                db.add(AssetDepositStock(asset_id=a.id, deposit_id=dep_central.id, quantity=a.current_stock))
 
         db.commit()
         print("Datos iniciales creados")

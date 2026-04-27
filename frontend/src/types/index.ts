@@ -109,6 +109,7 @@ export interface Movement {
   operator: User
   target_user_id: number | null
   target_user: User | null
+  target_user_name: string | null
   deposit_id: number | null
   deposit_name: string | null
   timestamp: string

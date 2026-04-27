@@ -6,19 +6,10 @@ from app.models.movement import StockMovement, MovementType
 from app.models.asset import Asset, AssetStatus
 from app.models.asset_deposit_stock import AssetDepositStock
 from app.models.user import User, UserRole
-from app.models.deposit import Deposit
 from app.schemas.movement import MovementCreate, MovementResponse
 from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/movements", tags=["movements"])
-
-def _get_or_create_deposit_stock(db, asset_id, deposit_id):
-    ads = db.query(AssetDepositStock).filter_by(asset_id=asset_id, deposit_id=deposit_id).first()
-    if not ads:
-        ads = AssetDepositStock(asset_id=asset_id, deposit_id=deposit_id, quantity=0)
-        db.add(ads)
-        db.flush()
-    return ads
 
 def _stock_status(current, safety):
     if current == 0:
@@ -30,6 +21,7 @@ def _stock_status(current, safety):
     return "OK"
 
 def _serialize_movement(m):
+    target_name = m.target_user_name or (m.target_user.full_name if m.target_user else None)
     return {
         "id": m.id,
         "asset_id": m.asset_id,
@@ -57,6 +49,8 @@ def _serialize_movement(m):
             "is_active": m.asset.is_active,
             "created_at": m.asset.created_at,
             "updated_at": m.asset.updated_at,
+            "deposit_id": m.asset.deposit_id,
+            "deposit": {"id": m.asset.deposit.id, "name": m.asset.deposit.name, "location": m.asset.deposit.location} if m.asset.deposit else None,
             "deposit_stocks": [],
         },
         "movement_type": m.movement_type.value,
@@ -83,6 +77,7 @@ def _serialize_movement(m):
             "is_active": m.target_user.is_active,
             "created_at": m.target_user.created_at,
         } if m.target_user else None,
+        "target_user_name": target_name,
         "deposit_id": m.deposit_id,
         "deposit_name": m.deposit.name if m.deposit else None,
         "timestamp": m.timestamp,
@@ -92,7 +87,6 @@ def _serialize_movement(m):
 def list_movements(
     asset_id: int | None = None,
     movement_type: MovementType | None = None,
-    target_user_id: int | None = None,
     deposit_id: int | None = None,
     skip: int = 0,
     limit: int = 100,
@@ -104,8 +98,6 @@ def list_movements(
         q = q.filter(StockMovement.asset_id == asset_id)
     if movement_type:
         q = q.filter(StockMovement.movement_type == movement_type)
-    if target_user_id:
-        q = q.filter(StockMovement.target_user_id == target_user_id)
     if deposit_id:
         q = q.filter(StockMovement.deposit_id == deposit_id)
     return [_serialize_movement(m) for m in q.offset(skip).limit(limit).all()]
@@ -122,32 +114,36 @@ def create_movement(data: MovementCreate, db: Session = Depends(get_db), current
     if data.quantity <= 0:
         raise HTTPException(400, "La cantidad debe ser mayor a cero")
 
-    if data.deposit_id:
-        deposit = db.query(Deposit).filter(Deposit.id == data.deposit_id, Deposit.is_active == True).first()
-        if not deposit:
-            raise HTTPException(404, "Depósito no encontrado")
-
     if data.movement_type == MovementType.EGRESO:
         if asset.current_stock < data.quantity:
             raise HTTPException(400, f"Stock insuficiente. Disponible: {asset.current_stock}")
-        if data.target_user_id is None:
-            raise HTTPException(400, "Se requiere usuario destinatario para egreso")
+        if not data.target_user_name:
+            raise HTTPException(400, "Se requiere el nombre del destinatario para egreso")
 
-    if data.movement_type == MovementType.DEVOLUCION and data.target_user_id is None:
-        raise HTTPException(400, "Se requiere el usuario que devuelve el activo")
+    if data.movement_type == MovementType.DEVOLUCION and not data.target_user_name:
+        raise HTTPException(400, "Se requiere el nombre de quien devuelve el activo")
 
-    # Update asset totals
+    # Sync AssetDepositStock for asset's deposit before applying the movement
+    ads = None
+    if asset.deposit_id:
+        ads = db.query(AssetDepositStock).filter_by(asset_id=asset.id, deposit_id=asset.deposit_id).first()
+        if not ads:
+            # Initialize with current stock so the record is in sync
+            ads = AssetDepositStock(asset_id=asset.id, deposit_id=asset.deposit_id, quantity=asset.current_stock)
+            db.add(ads)
+            db.flush()
+
+    # Update asset total stock
     if data.movement_type == MovementType.INGRESO:
         asset.current_stock += data.quantity
         asset.total_quantity += data.quantity
     elif data.movement_type == MovementType.EGRESO:
         asset.current_stock -= data.quantity
-    else:
+    else:  # DEVOLUCION
         asset.current_stock += data.quantity
 
-    # Update deposit stock
-    if data.deposit_id:
-        ads = _get_or_create_deposit_stock(db, data.asset_id, data.deposit_id)
+    # Mirror the same delta in AssetDepositStock
+    if ads is not None:
         if data.movement_type == MovementType.INGRESO:
             ads.quantity += data.quantity
         elif data.movement_type == MovementType.EGRESO:
@@ -168,8 +164,8 @@ def create_movement(data: MovementCreate, db: Session = Depends(get_db), current
         reason=data.reason,
         notes=data.notes,
         operator_user_id=current_user.id,
-        target_user_id=data.target_user_id,
-        deposit_id=data.deposit_id,
+        target_user_name=data.target_user_name,
+        deposit_id=asset.deposit_id,
     )
     db.add(mv)
     db.commit()

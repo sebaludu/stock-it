@@ -23,6 +23,8 @@ class StockMovement(Base):
     deposit_id = Column(Integer, ForeignKey("deposits.id"), nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    target_user_name = Column(String(255), nullable=True)
+
     asset = relationship("Asset", back_populates="movements")
     operator = relationship("User", foreign_keys=[operator_user_id], back_populates="movements_operated")
     target_user = relationship("User", foreign_keys=[target_user_id], back_populates="movements_targeted")
