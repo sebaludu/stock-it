@@ -5,6 +5,7 @@ export interface AssetFilters {
   asset_type_id?: number
   status?: string
   alert_only?: boolean
+  deposit_id?: number
 }
 
 export interface AssetCreateData {

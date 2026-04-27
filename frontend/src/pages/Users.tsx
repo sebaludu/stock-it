@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getUsers, createUser, updateUser, deactivateUser } from '../api/users'
-import type { UserRole } from '../types'
-import { Plus, X, UserCheck, UserX } from 'lucide-react'
+import { getDeposits, getUserDeposits, addUserDeposit, removeUserDeposit } from '../api/deposits'
+import type { User, UserRole } from '../types'
+import { Plus, X, UserCheck, UserX, Warehouse, PlusCircle, MinusCircle } from 'lucide-react'
 
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
@@ -15,10 +16,85 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   )
 }
 
+function DepositsPanel({ user, onClose }: { user: User; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [selectedDeposit, setSelectedDeposit] = useState('')
+
+  const { data: allDeposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: getDeposits })
+  const { data: userDeposits = [] } = useQuery({
+    queryKey: ['user-deposits', user.id],
+    queryFn: () => getUserDeposits(user.id),
+  })
+
+  const addMutation = useMutation({
+    mutationFn: () => addUserDeposit(user.id, Number(selectedDeposit)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['user-deposits', user.id] }); setSelectedDeposit('') },
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: (depositId: number) => removeUserDeposit(user.id, depositId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['user-deposits', user.id] }),
+  })
+
+  const assignedIds = new Set(userDeposits.map((d) => d.id))
+  const available = allDeposits.filter((d) => !assignedIds.has(d.id))
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-4 relative">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Depósitos de {user.full_name}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+
+        <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+          {userDeposits.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">Sin depósitos asignados</p>
+          ) : (
+            userDeposits.map((d) => (
+              <div key={d.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <Warehouse size={16} className="text-indigo-500" />
+                  <span className="text-sm font-medium">{d.name}</span>
+                  {d.location && <span className="text-xs text-gray-400">{d.location}</span>}
+                </div>
+                <button onClick={() => removeMutation.mutate(d.id)} className="text-gray-400 hover:text-red-500 transition-colors" title="Quitar acceso">
+                  <MinusCircle size={16} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+
+        {available.length > 0 && (
+          <div className="flex gap-2 border-t border-gray-100 pt-4">
+            <select
+              value={selectedDeposit}
+              onChange={(e) => setSelectedDeposit(e.target.value)}
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Agregar depósito...</option>
+              {available.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <button
+              onClick={() => selectedDeposit && addMutation.mutate()}
+              disabled={!selectedDeposit || addMutation.isPending}
+              className="flex items-center gap-1 bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm"
+            >
+              <PlusCircle size={16} /> Agregar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Users() {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const [managingDeposits, setManagingDeposits] = useState<User | null>(null)
   const [form, setForm] = useState({ username: '', full_name: '', email: '', password: '', role: 'SOPORTE_IT' as UserRole })
 
   const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: getUsers })
@@ -80,7 +156,12 @@ export default function Users() {
                     {u.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 flex items-center gap-2">
+                  {u.role !== 'ADMIN' && (
+                    <button onClick={() => setManagingDeposits(u)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Gestionar depósitos">
+                      <Warehouse size={16} />
+                    </button>
+                  )}
                   <button onClick={() => toggleMutation.mutate({ id: u.id, is_active: u.is_active })} className="text-gray-400 hover:text-indigo-600 transition-colors" title={u.is_active ? 'Desactivar' : 'Activar'}>
                     {u.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
                   </button>
@@ -122,6 +203,10 @@ export default function Users() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {managingDeposits && (
+        <DepositsPanel user={managingDeposits} onClose={() => setManagingDeposits(null)} />
       )}
     </div>
   )

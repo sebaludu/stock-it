@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getAssets, getAssetTypes } from '../api/assets'
+import { getDeposits } from '../api/deposits'
 import StockBadge from '../components/StockBadge'
 import { useAuthStore } from '../store/authStore'
 import { Plus, Eye } from 'lucide-react'
@@ -20,15 +21,18 @@ export default function Assets() {
   const [typeId, setTypeId] = useState<string>('')
   const [status, setStatus] = useState<string>('')
   const [alertOnly, setAlertOnly] = useState(false)
+  const [depositId, setDepositId] = useState<string>('')
   const [search, setSearch] = useState('')
 
   const { data: types = [] } = useQuery({ queryKey: ['asset-types'], queryFn: getAssetTypes })
+  const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: getDeposits })
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['assets', typeId, status, alertOnly],
+    queryKey: ['assets', typeId, status, alertOnly, depositId],
     queryFn: () => getAssets({
       asset_type_id: typeId ? Number(typeId) : undefined,
       status: status || undefined,
       alert_only: alertOnly || undefined,
+      deposit_id: depositId ? Number(depositId) : undefined,
     }),
   })
 
@@ -61,6 +65,10 @@ export default function Assets() {
         </select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
           {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <select value={depositId} onChange={(e) => setDepositId(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">Todos los depósitos</option>
+          {deposits.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
         <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
           <input type="checkbox" checked={alertOnly} onChange={(e) => setAlertOnly(e.target.checked)} className="rounded" />

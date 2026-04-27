@@ -86,6 +86,32 @@ export default function AssetDetail() {
         {asset.notes && <p className="mt-4 text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg">{asset.notes}</p>}
       </div>
 
+      {asset.deposit_stocks && asset.deposit_stocks.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="font-semibold text-gray-900">Stock por depósito</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {['Depósito', 'Ubicación', 'Cantidad'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {asset.deposit_stocks.map((ds) => (
+                <tr key={ds.deposit_id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{ds.deposit_name}</td>
+                  <td className="px-4 py-3 text-gray-500">{ds.deposit_location ?? '—'}</td>
+                  <td className="px-4 py-3 font-semibold">{ds.quantity}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="font-semibold text-gray-900">Historial de movimientos</h3>

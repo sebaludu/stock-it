@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
+from app.models.user_deposit import UserDeposit
+from app.models.deposit import Deposit
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.core.dependencies import get_current_user, require_admin
 from app.core.security import get_password_hash
@@ -64,3 +66,45 @@ def deactivate_user(user_id: int, db: Session = Depends(get_db), current_user=De
     user.is_active = False
     db.commit()
     return {"message": "Usuario desactivado"}
+
+@router.get("/{user_id}/deposits")
+def get_user_deposits(user_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    from app.models.user import UserRole
+    if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+        raise HTTPException(403, "Sin permisos")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    return [
+        {"id": ud.deposit.id, "name": ud.deposit.name, "location": ud.deposit.location}
+        for ud in user.user_deposits
+        if ud.deposit.is_active
+    ]
+
+@router.post("/{user_id}/deposits")
+def add_user_deposit(user_id: int, payload: dict, db: Session = Depends(get_db), _=Depends(require_admin)):
+    deposit_id = payload.get("deposit_id")
+    if not deposit_id:
+        raise HTTPException(400, "deposit_id requerido")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    dep = db.query(Deposit).filter(Deposit.id == deposit_id, Deposit.is_active == True).first()
+    if not dep:
+        raise HTTPException(404, "Depósito no encontrado")
+    existing = db.query(UserDeposit).filter_by(user_id=user_id, deposit_id=deposit_id).first()
+    if existing:
+        raise HTTPException(400, "El usuario ya tiene acceso a este depósito")
+    ud = UserDeposit(user_id=user_id, deposit_id=deposit_id)
+    db.add(ud)
+    db.commit()
+    return {"message": "Depósito asignado"}
+
+@router.delete("/{user_id}/deposits/{deposit_id}")
+def remove_user_deposit(user_id: int, deposit_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+    ud = db.query(UserDeposit).filter_by(user_id=user_id, deposit_id=deposit_id).first()
+    if not ud:
+        raise HTTPException(404, "Asignación no encontrada")
+    db.delete(ud)
+    db.commit()
+    return {"message": "Depósito removido del usuario"}

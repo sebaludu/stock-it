@@ -3,6 +3,9 @@ from app.models.user import User, UserRole
 from app.models.asset_type import AssetType
 from app.models.asset import Asset, AssetStatus
 from app.models.movement import StockMovement, MovementType
+from app.models.deposit import Deposit
+from app.models.asset_deposit_stock import AssetDepositStock
+from app.models.user_deposit import UserDeposit
 from app.core.security import get_password_hash
 
 def seed():
@@ -59,6 +62,31 @@ def seed():
                                quantity=a.total_quantity, reason="Stock inicial",
                                operator_user_id=admin.id)
             db.add(mv)
+
+        deposits = [
+            Deposit(name="Depósito Central", description="Depósito principal", location="Planta Baja - Sector A"),
+            Deposit(name="Depósito Sucursal Norte", description="Sucursal zona norte", location="Edificio Norte - Piso 1"),
+            Deposit(name="Depósito Reparación", description="Equipos en reparación o servicio técnico", location="Sala de Servidores"),
+        ]
+        for d in deposits:
+            db.add(d)
+        db.flush()
+
+        dep_central = db.query(Deposit).filter(Deposit.name == "Depósito Central").first()
+        dep_norte = db.query(Deposit).filter(Deposit.name == "Depósito Sucursal Norte").first()
+
+        # soporte user only sees Depósito Central
+        db.add(UserDeposit(user_id=soporte.id, deposit_id=dep_central.id))
+        db.flush()
+
+        # Distribute asset stocks across deposits
+        for a in all_assets:
+            if a.current_stock > 0:
+                split = a.current_stock // 2
+                rest = a.current_stock - split
+                db.add(AssetDepositStock(asset_id=a.id, deposit_id=dep_central.id, quantity=rest))
+                if split > 0:
+                    db.add(AssetDepositStock(asset_id=a.id, deposit_id=dep_norte.id, quantity=split))
 
         db.commit()
         print("Datos iniciales creados")

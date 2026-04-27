@@ -10,6 +10,7 @@ import AssetTypes from './pages/AssetTypes'
 import Movements from './pages/Movements'
 import Users from './pages/Users'
 import Reports from './pages/Reports'
+import Deposits from './pages/Deposits'
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const user = useAuthStore((s) => s.user)
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="assets/:id/edit" element={<ProtectedRoute adminOnly><AssetForm /></ProtectedRoute>} />
           <Route path="asset-types" element={<ProtectedRoute adminOnly><AssetTypes /></ProtectedRoute>} />
           <Route path="movements" element={<Movements />} />
+          <Route path="deposits" element={<ProtectedRoute adminOnly><Deposits /></ProtectedRoute>} />
           <Route path="users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
           <Route path="reports" element={<Reports />} />
         </Route>

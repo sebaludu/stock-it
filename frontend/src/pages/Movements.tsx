@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMovements, createMovement } from '../api/movements'
 import { getAssets } from '../api/assets'
 import { getUsers } from '../api/users'
+import { getDeposits } from '../api/deposits'
 import { useAuthStore } from '../store/authStore'
 import type { MovementType } from '../types'
 import { Plus, X } from 'lucide-react'
@@ -33,6 +34,7 @@ export default function Movements() {
     reason: '',
     notes: '',
     target_user_id: '',
+    deposit_id: '',
   })
 
   const { data: movements = [] } = useQuery({
@@ -46,6 +48,7 @@ export default function Movements() {
 
   const { data: assets = [] } = useQuery({ queryKey: ['assets'], queryFn: () => getAssets() })
   const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: getUsers, enabled: showForm })
+  const { data: deposits = [] } = useQuery({ queryKey: ['deposits'], queryFn: getDeposits, enabled: showForm })
 
   const mutation = useMutation({
     mutationFn: () => createMovement({
@@ -55,13 +58,15 @@ export default function Movements() {
       reason: form.reason,
       notes: form.notes || undefined,
       target_user_id: form.target_user_id ? Number(form.target_user_id) : undefined,
+      deposit_id: form.deposit_id ? Number(form.deposit_id) : undefined,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['movements'] })
       qc.invalidateQueries({ queryKey: ['assets'] })
       qc.invalidateQueries({ queryKey: ['stock-report'] })
+      qc.invalidateQueries({ queryKey: ['deposit-stock'] })
       setShowForm(false)
-      setForm({ asset_id: '', movement_type: 'EGRESO', quantity: '1', reason: '', notes: '', target_user_id: '' })
+      setForm({ asset_id: '', movement_type: 'EGRESO', quantity: '1', reason: '', notes: '', target_user_id: '', deposit_id: '' })
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -100,7 +105,7 @@ export default function Movements() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              {['Fecha', 'Activo', 'Tipo', 'Cantidad', 'Motivo', 'Operador', 'Destinatario'].map((h) => (
+              {['Fecha', 'Activo', 'Tipo', 'Cantidad', 'Motivo', 'Depósito', 'Operador', 'Destinatario'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
               ))}
             </tr>
@@ -119,12 +124,13 @@ export default function Movements() {
                 </td>
                 <td className="px-4 py-3">{m.quantity}</td>
                 <td className="px-4 py-3 max-w-xs truncate">{m.reason}</td>
+                <td className="px-4 py-3 text-gray-500">{m.deposit_name ?? '—'}</td>
                 <td className="px-4 py-3">{m.operator.full_name}</td>
                 <td className="px-4 py-3">{m.target_user?.full_name ?? '—'}</td>
               </tr>
             ))}
             {movements.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Sin movimientos</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">Sin movimientos</td></tr>
             )}
           </tbody>
         </table>
@@ -166,6 +172,13 @@ export default function Movements() {
                 </select>
               </div>
             )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Depósito</label>
+              <select value={form.deposit_id} onChange={(e) => setForm((f) => ({ ...f, deposit_id: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">Sin depósito específico</option>
+                {deposits.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
               <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />

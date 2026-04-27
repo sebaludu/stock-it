@@ -15,6 +15,7 @@ export interface MovementCreateData {
   reason: string
   notes?: string
   target_user_id?: number
+  deposit_id?: number
 }
 
 export const getMovements = async (filters?: MovementFilters): Promise<Movement[]> => {

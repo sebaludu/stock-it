@@ -32,3 +32,4 @@ class Asset(Base):
 
     asset_type = relationship("AssetType", back_populates="assets")
     movements = relationship("StockMovement", back_populates="asset")
+    deposit_stocks = relationship("AssetDepositStock", back_populates="asset")

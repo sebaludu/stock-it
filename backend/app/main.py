@@ -28,13 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.routers import auth, users, assets, asset_types, movements, reports
+from app.routers import auth, users, assets, asset_types, movements, reports, deposits as deposits_router
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(assets.router)
 app.include_router(asset_types.router)
 app.include_router(movements.router)
 app.include_router(reports.router)
+app.include_router(deposits_router.router)
 
 @app.get("/health")
 def health():

@@ -11,6 +11,7 @@ class MovementCreate(BaseModel):
     reason: str
     notes: str | None = None
     target_user_id: int | None = None
+    deposit_id: int | None = None
 
 class MovementResponse(BaseModel):
     id: int
@@ -24,6 +25,8 @@ class MovementResponse(BaseModel):
     operator: UserResponse
     target_user_id: int | None
     target_user: UserResponse | None
+    deposit_id: int | None
+    deposit_name: str | None = None
     timestamp: datetime
 
     model_config = {"from_attributes": True}

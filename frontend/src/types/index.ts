@@ -3,6 +3,45 @@ export type AssetStatus = 'DISPONIBLE' | 'ASIGNADO' | 'REPARACION' | 'DAÑADO' |
 export type MovementType = 'INGRESO' | 'EGRESO' | 'DEVOLUCION'
 export type StockStatus = 'CRITICO' | 'BAJO' | 'MINIMO' | 'OK'
 
+export interface Deposit {
+  id: number
+  name: string
+  description: string | null
+  location: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface AssetDepositStock {
+  deposit_id: number
+  deposit_name: string
+  deposit_location: string | null
+  quantity: number
+}
+
+export interface DepositTransfer {
+  id: number
+  asset_id: number
+  asset_code: string
+  asset_description: string
+  from_deposit_id: number
+  from_deposit_name: string
+  to_deposit_id: number
+  to_deposit_name: string
+  quantity: number
+  reason: string | null
+  operator_name: string
+  timestamp: string
+}
+
+export interface DepositStockItem {
+  asset_id: number
+  asset_code: string
+  asset_description: string
+  asset_type: string
+  quantity: number
+}
+
 export interface User {
   id: number
   username: string
@@ -53,6 +92,7 @@ export interface Asset {
   is_active: boolean
   created_at: string
   updated_at: string
+  deposit_stocks?: AssetDepositStock[]
 }
 
 export interface Movement {
@@ -67,6 +107,8 @@ export interface Movement {
   operator: User
   target_user_id: number | null
   target_user: User | null
+  deposit_id: number | null
+  deposit_name: string | null
   timestamp: string
 }
 

@@ -27,9 +27,14 @@ def list_assets(
     asset_type_id: int | None = None,
     status: AssetStatus | None = None,
     alert_only: bool = False,
+    deposit_id: int | None = None,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
+    from app.models.asset_deposit_stock import AssetDepositStock
+    from app.models.user_deposit import UserDeposit
+    from app.models.user import UserRole
+
     q = db.query(Asset).filter(Asset.is_active == True)
     if asset_type_id:
         q = q.filter(Asset.asset_type_id == asset_type_id)
@@ -37,7 +42,20 @@ def list_assets(
         q = q.filter(Asset.status == status)
     if alert_only:
         q = q.filter(Asset.current_stock < Asset.safety_stock)
-    return q.order_by(Asset.code).all()
+
+    if deposit_id:
+        q = q.join(AssetDepositStock).filter(
+            AssetDepositStock.deposit_id == deposit_id,
+            AssetDepositStock.quantity > 0,
+        )
+    elif current_user.role != UserRole.ADMIN:
+        accessible_ids = [ud.deposit_id for ud in db.query(UserDeposit).filter(UserDeposit.user_id == current_user.id).all()]
+        if accessible_ids:
+            q = q.join(AssetDepositStock, isouter=True).filter(
+                (AssetDepositStock.deposit_id.in_(accessible_ids)) | (AssetDepositStock.deposit_id == None)
+            )
+
+    return q.distinct().order_by(Asset.code).all()
 
 @router.post("", response_model=AssetResponse)
 def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=Depends(require_admin)):
@@ -73,12 +91,24 @@ def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=
     db.refresh(asset)
     return asset
 
-@router.get("/{asset_id}", response_model=AssetResponse)
+@router.get("/{asset_id}")
 def get_asset(asset_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    from app.models.asset_deposit_stock import AssetDepositStock
     asset = db.query(Asset).filter(Asset.id == asset_id, Asset.is_active == True).first()
     if not asset:
         raise HTTPException(404, "Activo no encontrado")
-    return asset
+    result = AssetResponse.model_validate(asset).model_dump()
+    result['deposit_stocks'] = [
+        {
+            "deposit_id": ads.deposit_id,
+            "deposit_name": ads.deposit.name,
+            "deposit_location": ads.deposit.location,
+            "quantity": ads.quantity,
+        }
+        for ads in asset.deposit_stocks
+        if ads.quantity > 0
+    ]
+    return result
 
 @router.put("/{asset_id}", response_model=AssetResponse)
 def update_asset(asset_id: int, data: AssetUpdate, db: Session = Depends(get_db), _=Depends(require_admin)):

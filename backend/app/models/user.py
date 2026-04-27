@@ -22,3 +22,4 @@ class User(Base):
 
     movements_operated = relationship("StockMovement", foreign_keys="StockMovement.operator_user_id", back_populates="operator")
     movements_targeted = relationship("StockMovement", foreign_keys="StockMovement.target_user_id", back_populates="target_user")
+    user_deposits = relationship("UserDeposit", back_populates="user")
