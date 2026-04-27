@@ -1,12 +1,22 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.database import engine, Base
 import app.models  # register all models
+
+def _run_migrations():
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE assets ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
     from seed import seed
     seed()
     yield

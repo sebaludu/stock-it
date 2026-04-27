@@ -6,6 +6,7 @@ from app.models.asset import Asset, AssetStatus
 from app.models.asset_type import AssetType
 from app.models.movement import StockMovement, MovementType
 from app.models.asset_deletion_log import AssetDeletionLog
+from app.models.asset_deposit_stock import AssetDepositStock
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 from app.core.dependencies import get_current_user, require_admin
 
@@ -31,9 +32,6 @@ def list_assets(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    from app.models.asset_deposit_stock import AssetDepositStock
-    from app.models.user_deposit import UserDeposit
-    from app.models.user import UserRole
 
     q = db.query(Asset).filter(Asset.is_active == True)
     if asset_type_id:
@@ -42,20 +40,10 @@ def list_assets(
         q = q.filter(Asset.status == status)
     if alert_only:
         q = q.filter(Asset.current_stock < Asset.safety_stock)
-
     if deposit_id:
-        q = q.join(AssetDepositStock).filter(
-            AssetDepositStock.deposit_id == deposit_id,
-            AssetDepositStock.quantity > 0,
-        )
-    elif current_user.role != UserRole.ADMIN:
-        accessible_ids = [ud.deposit_id for ud in db.query(UserDeposit).filter(UserDeposit.user_id == current_user.id).all()]
-        if accessible_ids:
-            q = q.join(AssetDepositStock, isouter=True).filter(
-                (AssetDepositStock.deposit_id.in_(accessible_ids)) | (AssetDepositStock.deposit_id == None)
-            )
+        q = q.filter(Asset.deposit_id == deposit_id)
 
-    return q.distinct().order_by(Asset.code).all()
+    return q.order_by(Asset.code).all()
 
 @router.post("", response_model=AssetResponse)
 def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=Depends(require_admin)):
@@ -75,6 +63,7 @@ def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=
         status=data.status,
         purchase_date=data.purchase_date,
         notes=data.notes,
+        deposit_id=data.deposit_id,
     )
     db.add(asset)
     db.flush()
@@ -85,8 +74,12 @@ def create_asset(data: AssetCreate, db: Session = Depends(get_db), current_user=
             quantity=data.initial_stock,
             reason="Stock inicial",
             operator_user_id=current_user.id,
+            deposit_id=data.deposit_id,
         )
         db.add(mv)
+        if data.deposit_id:
+            ads = AssetDepositStock(asset_id=asset.id, deposit_id=data.deposit_id, quantity=data.initial_stock)
+            db.add(ads)
     db.commit()
     db.refresh(asset)
     return asset

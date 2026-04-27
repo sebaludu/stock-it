@@ -83,7 +83,7 @@ export default function Assets() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['Código', 'Tipo', 'Descripción', 'Stock / Seguridad', 'Estado', 'Stock', 'Acciones'].map((h) => (
+                {['Código', 'Tipo', 'Descripción', 'Depósito', 'Stock / Seguridad', 'Estado', 'Stock', 'Acciones'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
@@ -97,6 +97,7 @@ export default function Assets() {
                     <div>{a.description}</div>
                     {a.brand && <div className="text-xs text-gray-400">{a.brand} {a.model}</div>}
                   </td>
+                  <td className="px-4 py-3 text-gray-500">{a.deposit?.name ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3">
                     <span className={a.current_stock < a.safety_stock ? 'text-red-600 font-bold' : ''}>{a.current_stock}</span>
                     <span className="text-gray-400"> / {a.safety_stock}</span>
@@ -113,7 +114,7 @@ export default function Assets() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No hay activos para mostrar</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No hay activos para mostrar</td></tr>
               )}
             </tbody>
           </table>

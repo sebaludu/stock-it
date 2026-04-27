@@ -5,28 +5,17 @@ from app.database import get_db
 from app.models.deposit import Deposit
 from app.models.asset_deposit_stock import AssetDepositStock
 from app.models.deposit_transfer import DepositTransfer
-from app.models.user_deposit import UserDeposit
 from app.models.asset import Asset
-from app.models.user import UserRole
 from app.schemas.deposit import DepositCreate, DepositUpdate, DepositResponse, DepositTransferCreate, DepositTransferResponse
 from app.core.dependencies import get_current_user, require_admin
 
 router = APIRouter(tags=["deposits"])
 
-def _get_accessible_deposit_ids(user, db: Session) -> list[int] | None:
-    if user.role == UserRole.ADMIN:
-        return None  # None means all
-    return [ud.deposit_id for ud in db.query(UserDeposit).filter(UserDeposit.user_id == user.id).all()]
-
 # ── Deposits CRUD ──────────────────────────────────────────────────────────────
 
 @router.get("/deposits", response_model=list[DepositResponse])
-def list_deposits(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    q = db.query(Deposit).filter(Deposit.is_active == True)
-    accessible = _get_accessible_deposit_ids(current_user, db)
-    if accessible is not None:
-        q = q.filter(Deposit.id.in_(accessible))
-    return q.order_by(Deposit.name).all()
+def list_deposits(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    return db.query(Deposit).filter(Deposit.is_active == True).order_by(Deposit.name).all()
 
 @router.post("/deposits", response_model=DepositResponse)
 def create_deposit(data: DepositCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
@@ -67,10 +56,7 @@ def delete_deposit(deposit_id: int, db: Session = Depends(get_db), _=Depends(req
 # ── Deposit stock per asset ────────────────────────────────────────────────────
 
 @router.get("/deposits/{deposit_id}/stock")
-def deposit_stock(deposit_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    accessible = _get_accessible_deposit_ids(current_user, db)
-    if accessible is not None and deposit_id not in accessible:
-        raise HTTPException(403, "Sin acceso a este depósito")
+def deposit_stock(deposit_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     dep = db.query(Deposit).filter(Deposit.id == deposit_id, Deposit.is_active == True).first()
     if not dep:
         raise HTTPException(404, "Depósito no encontrado")

@@ -3,6 +3,12 @@ from datetime import datetime, date
 from app.models.asset import AssetStatus
 from app.schemas.asset_type import AssetTypeResponse
 
+class DepositInAsset(BaseModel):
+    id: int
+    name: str
+    location: str | None = None
+    model_config = {"from_attributes": True}
+
 class AssetBase(BaseModel):
     description: str
     asset_type_id: int
@@ -15,6 +21,7 @@ class AssetBase(BaseModel):
 
 class AssetCreate(AssetBase):
     initial_stock: int = 0
+    deposit_id: int | None = None
 
 class AssetUpdate(BaseModel):
     description: str | None = None
@@ -25,6 +32,7 @@ class AssetUpdate(BaseModel):
     status: AssetStatus | None = None
     purchase_date: date | None = None
     notes: str | None = None
+    deposit_id: int | None = None
 
 class AssetResponse(BaseModel):
     id: int
@@ -43,6 +51,8 @@ class AssetResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    deposit_id: int | None = None
+    deposit: DepositInAsset | None = None
 
     @computed_field
     @property

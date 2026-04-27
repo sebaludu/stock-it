@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.asset import Asset
 from app.models.movement import StockMovement
 from app.models.asset_deletion_log import AssetDeletionLog
+from app.models.deposit import Deposit
 from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -78,6 +79,59 @@ def deleted_assets_log(db: Session = Depends(get_db), _=Depends(get_current_user
         }
         for l in logs
     ]
+
+@router.get("/alerts-by-deposit")
+def alerts_by_deposit(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    deposits = db.query(Deposit).filter(Deposit.is_active == True).order_by(Deposit.name).all()
+    result = []
+    for dep in deposits:
+        alert_assets = db.query(Asset).filter(
+            Asset.is_active == True,
+            Asset.deposit_id == dep.id,
+            Asset.current_stock < Asset.safety_stock,
+        ).all()
+        if alert_assets:
+            result.append({
+                "deposit_id": dep.id,
+                "deposit_name": dep.name,
+                "deposit_location": dep.location,
+                "alerts": [
+                    {
+                        "id": a.id,
+                        "code": a.code,
+                        "description": a.description,
+                        "asset_type": a.asset_type.name,
+                        "current_stock": a.current_stock,
+                        "safety_stock": a.safety_stock,
+                        "stock_status": _stock_status(a.current_stock, a.safety_stock),
+                    }
+                    for a in alert_assets
+                ],
+            })
+    no_deposit_alerts = db.query(Asset).filter(
+        Asset.is_active == True,
+        Asset.deposit_id == None,
+        Asset.current_stock < Asset.safety_stock,
+    ).all()
+    if no_deposit_alerts:
+        result.append({
+            "deposit_id": None,
+            "deposit_name": "Sin depósito asignado",
+            "deposit_location": None,
+            "alerts": [
+                {
+                    "id": a.id,
+                    "code": a.code,
+                    "description": a.description,
+                    "asset_type": a.asset_type.name,
+                    "current_stock": a.current_stock,
+                    "safety_stock": a.safety_stock,
+                    "stock_status": _stock_status(a.current_stock, a.safety_stock),
+                }
+                for a in no_deposit_alerts
+            ],
+        })
+    return result
 
 @router.get("/movements/export")
 def export_movements(db: Session = Depends(get_db), _=Depends(get_current_user)):

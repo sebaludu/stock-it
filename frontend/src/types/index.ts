@@ -92,6 +92,8 @@ export interface Asset {
   is_active: boolean
   created_at: string
   updated_at: string
+  deposit_id: number | null
+  deposit: { id: number; name: string; location: string | null } | null
   deposit_stocks?: AssetDepositStock[]
 }
 
@@ -125,6 +127,21 @@ export interface StockReportItem {
   stock_status: StockStatus
   stock_diff: number
   stock_pct: number | null
+}
+
+export interface DepositAlert {
+  deposit_id: number | null
+  deposit_name: string
+  deposit_location: string | null
+  alerts: {
+    id: number
+    code: string
+    description: string
+    asset_type: string
+    current_stock: number
+    safety_stock: number
+    stock_status: StockStatus
+  }[]
 }
 
 export interface AuthToken {

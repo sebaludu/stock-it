@@ -30,6 +30,9 @@ class Asset(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    deposit_id = Column(Integer, ForeignKey("deposits.id"), nullable=True)
+
     asset_type = relationship("AssetType", back_populates="assets")
     movements = relationship("StockMovement", back_populates="asset")
     deposit_stocks = relationship("AssetDepositStock", back_populates="asset")
+    deposit = relationship("Deposit")

@@ -58,6 +58,12 @@ export default function AssetDetail() {
             <span className="text-sm font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{asset.code}</span>
             <h2 className="text-2xl font-bold text-gray-900 mt-2">{asset.description}</h2>
             <p className="text-gray-500">{asset.asset_type.icon} {asset.asset_type.name}</p>
+            {asset.deposit && (
+              <p className="text-sm text-indigo-600 mt-1 flex items-center gap-1">
+                <span className="font-medium">Depósito:</span> {asset.deposit.name}
+                {asset.deposit.location && <span className="text-gray-400">— {asset.deposit.location}</span>}
+              </p>
+            )}
           </div>
           <StockBadge status={asset.stock_status} />
         </div>

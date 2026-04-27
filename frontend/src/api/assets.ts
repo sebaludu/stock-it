@@ -18,6 +18,7 @@ export interface AssetCreateData {
   purchase_date?: string
   notes?: string
   initial_stock?: number
+  deposit_id?: number
 }
 
 export const getAssets = async (filters?: AssetFilters): Promise<Asset[]> => {
