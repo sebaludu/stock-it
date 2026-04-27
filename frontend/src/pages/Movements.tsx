@@ -69,7 +69,8 @@ export default function Movements() {
       setForm({ asset_id: '', movement_type: 'EGRESO', quantity: '1', reason: '', notes: '', target_user_id: '', deposit_id: '' })
     },
     onError: (e: unknown) => {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? (detail[0] as { msg?: string })?.msg : undefined
       setError(msg ?? 'Error al registrar el movimiento')
     },
   })

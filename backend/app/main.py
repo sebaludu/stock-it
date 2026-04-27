@@ -5,13 +5,17 @@ from sqlalchemy import text
 from app.database import engine, Base
 import app.models  # register all models
 
+def _add_column(conn, ddl: str):
+    try:
+        conn.execute(text(ddl))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+
 def _run_migrations():
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE assets ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)"))
-            conn.commit()
-        except Exception:
-            pass  # Column already exists
+        _add_column(conn, "ALTER TABLE assets ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
+        _add_column(conn, "ALTER TABLE stock_movements ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
