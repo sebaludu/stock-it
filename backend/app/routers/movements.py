@@ -5,7 +5,6 @@ from app.database import get_db
 from app.models.movement import StockMovement, MovementType
 from app.models.asset import Asset, AssetStatus
 from app.models.asset_deposit_stock import AssetDepositStock
-from app.models.user_deposit import UserDeposit
 from app.models.user import User, UserRole
 from app.models.deposit import Deposit
 from app.schemas.movement import MovementCreate, MovementResponse
@@ -20,13 +19,6 @@ def _get_or_create_deposit_stock(db, asset_id, deposit_id):
         db.add(ads)
         db.flush()
     return ads
-
-def _check_deposit_access(user, deposit_id, db):
-    if user.role == UserRole.ADMIN:
-        return
-    ud = db.query(UserDeposit).filter_by(user_id=user.id, deposit_id=deposit_id).first()
-    if not ud:
-        raise HTTPException(403, "Sin acceso al depósito indicado")
 
 def _stock_status(current, safety):
     if current == 0:
@@ -134,18 +126,12 @@ def create_movement(data: MovementCreate, db: Session = Depends(get_db), current
         deposit = db.query(Deposit).filter(Deposit.id == data.deposit_id, Deposit.is_active == True).first()
         if not deposit:
             raise HTTPException(404, "Depósito no encontrado")
-        _check_deposit_access(current_user, data.deposit_id, db)
 
     if data.movement_type == MovementType.EGRESO:
         if asset.current_stock < data.quantity:
             raise HTTPException(400, f"Stock insuficiente. Disponible: {asset.current_stock}")
         if data.target_user_id is None:
             raise HTTPException(400, "Se requiere usuario destinatario para egreso")
-        if data.deposit_id:
-            ads = db.query(AssetDepositStock).filter_by(asset_id=data.asset_id, deposit_id=data.deposit_id).first()
-            dep_qty = ads.quantity if ads else 0
-            if dep_qty < data.quantity:
-                raise HTTPException(400, f"Stock insuficiente en el depósito. Disponible: {dep_qty}")
 
     if data.movement_type == MovementType.DEVOLUCION and data.target_user_id is None:
         raise HTTPException(400, "Se requiere el usuario que devuelve el activo")
