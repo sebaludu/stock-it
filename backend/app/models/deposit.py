@@ -10,8 +10,6 @@ class Deposit(Base):
     name = Column(String(100), unique=True, nullable=False)
     description = Column(String(255), nullable=True)
     location = Column(String(255), nullable=True)
-    environment = Column(String(20), nullable=True)
-    alert_email = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

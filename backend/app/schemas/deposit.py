@@ -1,15 +1,10 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal
-
-EnvironmentType = Literal["DEV", "TEST", "STAGE", "PROD"]
 
 class DepositBase(BaseModel):
     name: str
     description: str | None = None
     location: str | None = None
-    environment: EnvironmentType | None = None
-    alert_email: str | None = None
 
 class DepositCreate(DepositBase):
     pass
@@ -18,8 +13,6 @@ class DepositUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     location: str | None = None
-    environment: EnvironmentType | None = None
-    alert_email: str | None = None
 
 class DepositResponse(DepositBase):
     id: int

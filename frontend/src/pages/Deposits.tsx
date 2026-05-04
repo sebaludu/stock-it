@@ -5,7 +5,7 @@ import {
   getDepositStock, getTransfers, createTransfer,
 } from '../api/deposits'
 import { getAssets } from '../api/assets'
-import type { Deposit, DepositEnvironment, DepositStockItem, DepositTransfer } from '../types'
+import type { Deposit, DepositStockItem, DepositTransfer } from '../types'
 import { Plus, X, Edit2, Trash2, ArrowLeftRight, Warehouse } from 'lucide-react'
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default function Deposits() {
   const [selectedDeposit, setSelectedDeposit] = useState<Deposit | null>(null)
   const [error, setError] = useState('')
 
-  const [form, setForm] = useState({ name: '', description: '', location: '', environment: '' as DepositEnvironment | '', alert_email: '' })
+  const [form, setForm] = useState({ name: '', description: '', location: '' })
   const [transferForm, setTransferForm] = useState({
     asset_id: '',
     from_deposit_id: '',
@@ -52,24 +52,14 @@ export default function Deposits() {
     enabled: !!selectedDeposit,
   })
 
-  const formPayload = () => ({
-    name: form.name,
-    description: form.description || undefined,
-    location: form.location || undefined,
-    environment: form.environment || undefined,
-    alert_email: form.alert_email || undefined,
-  })
-
-  const resetForm = () => setForm({ name: '', description: '', location: '', environment: '', alert_email: '' })
-
   const createMutation = useMutation({
-    mutationFn: () => createDeposit(formPayload()),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['deposits'] }); setShowCreate(false); resetForm() },
+    mutationFn: () => createDeposit({ name: form.name, description: form.description || undefined, location: form.location || undefined }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['deposits'] }); setShowCreate(false); setForm({ name: '', description: '', location: '' }) },
     onError: (e: unknown) => setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al crear'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => updateDeposit(editing!.id, formPayload()),
+    mutationFn: () => updateDeposit(editing!.id, { name: form.name, description: form.description || undefined, location: form.location || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['deposits'] }); setEditing(null) },
     onError: (e: unknown) => setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al actualizar'),
   })
@@ -101,7 +91,7 @@ export default function Deposits() {
 
   const openEdit = (dep: Deposit) => {
     setEditing(dep)
-    setForm({ name: dep.name, description: dep.description ?? '', location: dep.location ?? '', environment: dep.environment ?? '', alert_email: dep.alert_email ?? '' })
+    setForm({ name: dep.name, description: dep.description ?? '', location: dep.location ?? '' })
     setError('')
   }
 
@@ -113,7 +103,7 @@ export default function Deposits() {
           <button onClick={() => { setShowTransfer(true); setError('') }} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
             <ArrowLeftRight size={16} /> Transferir
           </button>
-          <button onClick={() => { setShowCreate(true); setError(''); resetForm() }} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+          <button onClick={() => { setShowCreate(true); setError(''); setForm({ name: '', description: '', location: '' }) }} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
             <Plus size={16} /> Nuevo depósito
           </button>
         </div>
@@ -146,20 +136,9 @@ export default function Deposits() {
                       <Warehouse size={20} className="text-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900">{dep.name}</p>
-                        {dep.environment && (
-                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                            dep.environment === 'PROD' ? 'bg-red-100 text-red-700' :
-                            dep.environment === 'STAGE' ? 'bg-orange-100 text-orange-700' :
-                            dep.environment === 'TEST' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>{dep.environment}</span>
-                        )}
-                      </div>
+                      <p className="font-semibold text-gray-900">{dep.name}</p>
                       {dep.location && <p className="text-sm text-gray-500">{dep.location}</p>}
                       {dep.description && <p className="text-xs text-gray-400 mt-0.5">{dep.description}</p>}
-                      {dep.alert_email && <p className="text-xs text-indigo-500 mt-0.5">✉ {dep.alert_email}</p>}
                     </div>
                   </div>
                   <div className="flex gap-1 ml-2">
@@ -264,27 +243,6 @@ export default function Deposits() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
               <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
-              <select value={form.environment} onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value as DepositEnvironment | '' }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="">Sin especificar</option>
-                <option value="DEV">DEV — Desarrollo</option>
-                <option value="TEST">TEST — Testing</option>
-                <option value="STAGE">STAGE — Staging</option>
-                <option value="PROD">PROD — Producción</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email de alerta crítica</label>
-              <input
-                type="email"
-                value={form.alert_email}
-                onChange={(e) => setForm((f) => ({ ...f, alert_email: e.target.value }))}
-                placeholder="alertas@empresa.com"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <p className="text-xs text-gray-400 mt-0.5">Se enviará un mail cuando el stock de un activo llegue a cero</p>
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
             <div className="flex gap-3 pt-2">

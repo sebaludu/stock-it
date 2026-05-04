@@ -5,8 +5,6 @@ export interface DepositCreateData {
   name: string
   description?: string
   location?: string
-  environment?: string
-  alert_email?: string
 }
 
 export interface TransferCreateData {
