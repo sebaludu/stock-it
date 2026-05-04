@@ -7,6 +7,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./stock_it.db"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+
     model_config = {"env_file": ".env"}
 
 settings = Settings()

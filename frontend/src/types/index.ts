@@ -3,11 +3,15 @@ export type AssetStatus = 'DISPONIBLE' | 'ASIGNADO' | 'REPARACION' | 'DAÑADO' |
 export type MovementType = 'INGRESO' | 'EGRESO' | 'DEVOLUCION'
 export type StockStatus = 'CRITICO' | 'BAJO' | 'MINIMO' | 'OK'
 
+export type DepositEnvironment = 'DEV' | 'TEST' | 'STAGE' | 'PROD'
+
 export interface Deposit {
   id: number
   name: string
   description: string | null
   location: string | null
+  environment: DepositEnvironment | null
+  alert_email: string | null
   is_active: boolean
   created_at: string
 }

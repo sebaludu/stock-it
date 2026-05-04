@@ -5,9 +5,11 @@ from app.database import get_db
 from app.models.movement import StockMovement, MovementType
 from app.models.asset import Asset, AssetStatus
 from app.models.asset_deposit_stock import AssetDepositStock
+from app.models.deposit import Deposit
 from app.models.user import User, UserRole
 from app.schemas.movement import MovementCreate, MovementResponse
 from app.core.dependencies import get_current_user
+from app.core.email import send_critical_stock_alert
 
 router = APIRouter(prefix="/movements", tags=["movements"])
 
@@ -170,6 +172,18 @@ def create_movement(data: MovementCreate, db: Session = Depends(get_db), current
     db.add(mv)
     db.commit()
     db.refresh(mv)
+
+    # Enviar alerta si el stock llegó a cero y el depósito tiene email configurado
+    if asset.current_stock == 0 and asset.deposit_id:
+        deposit = db.query(Deposit).filter(Deposit.id == asset.deposit_id).first()
+        if deposit and deposit.alert_email:
+            send_critical_stock_alert(
+                to_email=deposit.alert_email,
+                deposit_name=deposit.name,
+                asset_code=asset.code,
+                asset_description=asset.description,
+            )
+
     return _serialize_movement(mv)
 
 @router.get("/{movement_id}")

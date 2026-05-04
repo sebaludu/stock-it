@@ -17,6 +17,8 @@ def _run_migrations():
         _add_column(conn, "ALTER TABLE assets ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
         _add_column(conn, "ALTER TABLE stock_movements ADD COLUMN deposit_id INTEGER REFERENCES deposits(id)")
         _add_column(conn, "ALTER TABLE stock_movements ADD COLUMN target_user_name VARCHAR(255)")
+        _add_column(conn, "ALTER TABLE deposits ADD COLUMN environment VARCHAR(20)")
+        _add_column(conn, "ALTER TABLE deposits ADD COLUMN alert_email VARCHAR(255)")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
